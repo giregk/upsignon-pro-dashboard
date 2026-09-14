@@ -1,0 +1,1 @@
+- quand tu crées un worktree pour ce projet, copie les fichiers back/.env et front/.env dans ce worktree
