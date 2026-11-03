@@ -18,6 +18,8 @@ const translations = {
   pagination_pages: 'pages',
   validate: 'Validate',
   cancel: 'Cancel',
+  activate: 'Activer',
+  deactivate: 'Désactiver',
   request_error: 'Server request error. You may need to reconnect.',
   network_error: 'Network error',
   unknown_error: 'Unknown error',
@@ -30,7 +32,8 @@ const translations = {
   settings_tab_setup: 'Setup link',
   settings_tab_options: 'Configuration options',
   settings_tab_admins: 'Administrators',
-  settings_tab_permissions: 'Permissions',
+  settings_tab_sso: 'SSO',
+  settings_tab_emails_slo: 'Allowed emails and SLO',
   settings_tab_urls: 'Prefilled websites',
   settings_tab_shamir: 'Fallback protocol',
   menu_shared_devices: 'Shared devices',
@@ -128,17 +131,22 @@ const translations = {
     'Please make sure the request was made by the user himself.\n\nGrant?',
   settings_server_redirection: 'ATTENTION: Redirection!',
   settings_server_redirection_new_url_label: 'This bank is being redirected to',
-  settings_openid_config:
-    'Single Sign On (optional) - enrollement and forgotten password - app v7.13.0 and next',
+  settings_openid_config: 'Single Sign On',
   settings_openid_config_pitch:
     'The SSO parameter enables single sign-on for the selected bank. Choose an identity provider from the options offered, or enter a URL in the provided custom field.',
+  settings_openid_config_pitch_mode1: 'Enrollment and forgotten password (v7.13.0 and above):',
   settings_openid_config_details:
-    'Once SSO is activated, all users attached to this bank will automatically be able to enroll their vault on their device using this method, without having to go through e-mail validation.',
+    'From version 7.13.0 of the app, SSO allows users to enroll their vault and use the forgotten password feature without going through email validation.',
+  settings_openid_config_pitch_mode2: 'Passwordless unlock (v7.20.0 and above):',
+  settings_passwordless_section_title: 'Passwordless unlock',
+  settings_sso_slo_message:
+    'From version 7.20.0 of the app, SSO allows selected users to unlock their vault without a password.\n\nDue to constraints imposed by autofill on iOS and Android, and to support offline mode, Single Log Out (SLO) is not supported by default.\n\nMicrosoft users can configure SLO by linking their Microsoft Entra ID directory in the "Allowed emails and SLO" tab.',
   settings_openid_unset: 'Deactivated',
   settings_openid_custom_config: 'Custom service',
   settings_openid_custom_config_submit: 'Validate',
   settings_openid_custom_config_url: 'openid_configuration file URL',
   settings_openid_custom_config_client_id: 'Client identifier',
+  settings_openid_disable_sso: 'Disable SSO',
   settings_openid_confirm_erase_previous_config:
     'This will erase your current configuration. Are you sure?',
   settings_openid_invalid_url: 'Invalid URL. Please enter a valid URL.',
@@ -152,6 +160,17 @@ const translations = {
   settings_allowed_emails_new: 'New email address pattern',
   settings_allowed_emails_delete_warning:
     'This will not delete the vaults for users matching this email address template.\n\nDelete ?',
+  settings_allowed_emails_passwordless_auth: 'Passwordless unlock',
+  settings_allowed_emails_passwordless_auth_enable_warning:
+    'Warning: once enabled, affected users will no longer be able to log in with their master password. To revert to password-based login, each user will need to use the "forgot password" function.\n\nEnable passwordless unlock?',
+  settings_allowed_emails_passwordless_auth_disable_warning:
+    'Warning: by disabling this mode, affected users will no longer be able to log in without a master password. To revert to password-based login, each user will need to use the "forgot password" function.\n\nDisable passwordless unlock?',
+  settings_allowed_emails_passwordless_auth_no_shamir_warning:
+    '\u26a0\ufe0f CRITICAL RISK: No Shamir emergency recovery protocol is configured on this vault bank.\n\nIf you enable passwordless mode and a user loses all their authorized devices, their vault will be permanently inaccessible — even for the administrator — as there is no recovery mechanism.\n\nIt is strongly recommended to configure Shamir before enabling this feature.',
+  settings_openid_disable_warning:
+    'Warning: if you disable SSO, users configured with passwordless unlock will need to use the "forgot password" function to access their vault again.',
+  settings_emails_slo_preamble:
+    'To be allowed to create a vault in this bank, a user must be authorized either by their email address (list below), or by being added to the UpSignOn application in Microsoft Entra ID.\n\nIf, at any point, a user is no longer authorized by either method, their vault is immediately deactivated and their offline access is revoked at the next connection attempt from each of their devices. This enables Single Log Out (SLO). The server performs this check twice a day.',
   settings_admin_email: 'Email',
   settings_admin_created_at: 'Added on',
   settings_admin_banks: 'Banks of vaults',
@@ -409,6 +428,10 @@ const translations = {
   bank_setting_microsoft_entra_test_all_users: 'UpSignOn users:',
   bank_setting_microsoft_entra_test_user_authorized: 'User authorized:',
   bank_setting_microsoft_entra_test_user_banks: 'Groups associated with this user:',
+  bank_setting_microsoft_entra_passwordless_auth_label:
+    'Passwordless unlock for users authorized via MS Entra ID.',
+  bank_setting_microsoft_entra_passwordless_auth_conflict_info:
+    'If there is a conflict between the allowed email address configuration and this Entra ID configuration (for a single email address, one source enables passwordless mode, the other does not), the passwordless mode takes priority.',
   licences_reseller_name: 'Group of banks',
   licences_bank_name: 'Bank',
   licences_bank_distribution: 'Distribution',

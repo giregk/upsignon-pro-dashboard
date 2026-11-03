@@ -34,6 +34,7 @@ import { insert_allowed_email } from './insert_allowed_email';
 import { insert_bank_admin } from './insert_bank_admin';
 import { insert_url } from './insert_url';
 import { update_allowed_email } from './update_allowed_email';
+import { toggle_passwordless_auth } from './toggle_passwordless_auth';
 import { update_bank } from './update_bank';
 import { update_url } from './update_url';
 import { update_user_email } from './update_user_email';
@@ -153,6 +154,7 @@ apiRouter.get('/allowed-emails', get_allowed_emails);
 apiRouter.post('/delete-allowed-email/:id', delete_allowed_email);
 apiRouter.post('/update-allowed-email', update_allowed_email);
 apiRouter.post('/insert-allowed-email', insert_allowed_email);
+apiRouter.post('/toggle-passwordless-auth', toggle_passwordless_auth);
 
 // Urls
 apiRouter.get('/urls', get_urls);
@@ -172,7 +174,7 @@ apiRouter.get('/bank-settings', get_bank_settings);
 apiRouter.post('/bank-settings-update', update_bank);
 
 // SERVER REDIRECTION
-apiRouter.post('/redirection_url', getRedirectionUrl);
+apiRouter.get('/redirection_url', getRedirectionUrl);
 
 // Microsoft Entra
 apiRouter.get('/bank-entra-config', get_bank_entra_config);

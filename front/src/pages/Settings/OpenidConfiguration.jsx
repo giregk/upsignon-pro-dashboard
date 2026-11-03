@@ -5,6 +5,9 @@ import './OpenidConfiguration.css';
 import { Loader } from '../../helpers/loader';
 import { isRestrictedSuperadmin } from '../../helpers/isRestrictedSuperadmin';
 import { toast } from 'react-toastify';
+import { AllowedEmails } from './AllowedEmails';
+import { MsEntraPasswordlessCheckbox } from './MsEntraPasswordlessCheckbox';
+import { Modal } from '../../helpers/Modal/Modal';
 
 // Windows Logo Component
 const WindowsLogo = () => (
@@ -28,11 +31,12 @@ const CheckIcon = ({ size = 24 }) => (
   </svg>
 );
 
-// Props : setIsLoading
+// Props : setIsLoading, onSSOChanged, shamirConfigured
 export class OpenidConfiguration extends React.Component {
   state = {
     openidConfig: null,
     choice: 'none', // none | microsoft | custom
+    confirmDisableSSOPending: false,
   };
 
   lock = false;
@@ -46,11 +50,13 @@ export class OpenidConfiguration extends React.Component {
           openidConfig: openidConfigs[0],
           choice: openidConfigs[0].configType,
         });
+        this.props.onSSOChanged?.(true);
       } else {
         this.setState({
           openidConfig: null,
           choice: 'none',
         });
+        this.props.onSSOChanged?.(false);
       }
     } catch (e) {
       console.error(e);
@@ -116,17 +122,25 @@ export class OpenidConfiguration extends React.Component {
     this.fetchBankSSOConfig();
   }
 
-  onSelectNone = async (ev) => {
+  onSelectNone = () => {
     const hasValueConfigured = this.state.openidConfig != null;
     if (hasValueConfigured) {
-      const confirmation = window.confirm(i18n.t('settings_openid_confirm_erase_previous_config'));
-      if (!confirmation) {
-        return;
-      }
-      await this.deleteBankSSOConfig(this.state.openidConfig.id);
+      this.setState({ confirmDisableSSOPending: true }, () =>
+        document.getElementById('disable-sso-confirm-dialog')?.showModal(),
+      );
     } else {
       this.setState({ openidConfig: null, choice: 'none' });
     }
+  };
+
+  _closeDisableSSODialog = () => {
+    document.getElementById('disable-sso-confirm-dialog')?.close();
+    this.setState({ confirmDisableSSOPending: false });
+  };
+
+  _doDisableSSO = async () => {
+    this._closeDisableSSODialog();
+    await this.deleteBankSSOConfig(this.state.openidConfig.id);
   };
   onSelectMicrosoft = async () => {
     const hasValueConfigured = this.state.openidConfig != null;
@@ -146,22 +160,63 @@ export class OpenidConfiguration extends React.Component {
       if (!confirmation) {
         return;
       }
-      await this.deleteBankSSOConfig(this.state.openidConfig.id);
     }
     this.setState({ choice: 'custom', openidConfig: null });
   };
   submitCustomConfig = async (configUrl, clientId) => {
+    // Only delete the bank SSO config when the full config is available to prevent issues
+    // with misconfigured SSO leading users to go back to password auth.
+    if (this.state.openidConfig) await this.deleteBankSSOConfig(this.state.openidConfig.id);
     await this.addBankSSOConfig('custom', configUrl, clientId);
   };
 
   render() {
+    const ssoEnabled = this.state.choice !== 'none';
     return (
       <div style={{ marginTop: 50 }}>
+        {this.state.confirmDisableSSOPending && (
+          <Modal
+            id="disable-sso-confirm-dialog"
+            title={i18n.t('settings_openid_disable_sso')}
+            onClosed={this._closeDisableSSODialog}
+          >
+            <p style={{ whiteSpace: 'pre-wrap', color: '#c0392b', fontWeight: 'bold' }}>
+              {i18n.t('settings_openid_disable_warning')}
+            </p>
+            <p style={{ whiteSpace: 'pre-wrap' }}>
+              {i18n.t('settings_openid_confirm_erase_previous_config')}
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 16 }}>
+              <button className="whiteButton" onClick={this._closeDisableSSODialog}>
+                {i18n.t('cancel')}
+              </button>
+              <button className="submitButton submitButtonAlt" onClick={this._doDisableSSO}>
+                {i18n.t('yes')}
+              </button>
+            </div>
+          </Modal>
+        )}
         <h2>{i18n.t('settings_openid_config')}</h2>
         <p>{i18n.t('settings_openid_config_pitch')}</p>
-        <p>
-          <strong>{i18n.t('settings_openid_config_details')}</strong>
-        </p>
+        <div
+          style={{
+            background: '#f5f5f5',
+            border: '1px solid #ddd',
+            borderRadius: 6,
+            padding: '16px 20px',
+            marginBottom: 24,
+          }}
+        >
+          <p style={{ margin: 0 }}>
+            <strong>{i18n.t('settings_openid_config_pitch_mode1')}</strong>{' '}
+            {i18n.t('settings_openid_config_details')}
+          </p>
+          <br />
+          <p style={{ margin: 0 }}>
+            <strong>{i18n.t('settings_openid_config_pitch_mode2')}</strong>{' '}
+            {i18n.t('settings_sso_slo_message')}
+          </p>
+        </div>
         <div className={isRestrictedSuperadmin ? 'disabledUI' : null}>
           <NoSSOChoice
             value="none"
@@ -184,6 +239,27 @@ export class OpenidConfiguration extends React.Component {
             currentConfig={this.state.openidConfig}
           />
         </div>
+        {ssoEnabled && (
+          <div style={{ marginTop: 40 }}>
+            <h2>{i18n.t('settings_passwordless_section_title')}</h2>
+
+            <AllowedEmails
+              setIsLoading={this.props.setIsLoading}
+              ssoEnabled={true}
+              shamirConfigured={this.props.shamirConfigured}
+              editablePasswordless={true}
+              readOnly={true}
+              hideTitle={true}
+            />
+
+            <div style={{ marginTop: 30 }}>
+              <MsEntraPasswordlessCheckbox
+                shamirConfigured={this.props.shamirConfigured}
+                setIsLoading={this.props.setIsLoading}
+              />
+            </div>
+          </div>
+        )}
       </div>
     );
   }

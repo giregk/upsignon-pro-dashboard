@@ -7,8 +7,11 @@ export const Modal = (p) => {
     document.getElementById(id).close();
     onClosed?.call();
   };
+  const handleCancel = () => {
+    onClosed?.call();
+  };
   return (
-    <dialog id={id} className="customModal">
+    <dialog id={id} className="customModal" onCancel={handleCancel}>
       <div className="modalHeader">
         <h2>{title}</h2>
         <button className="modalCloseButton" onClick={pressClose}>

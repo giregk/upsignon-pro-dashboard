@@ -1,5 +1,6 @@
 import React from 'react';
 import { i18n } from '../../i18n/i18n';
+import { bankUrlFetch } from '../../helpers/urlFetch';
 import { AllowedEmails } from './AllowedEmails';
 import { BankAdmins } from './BankAdmins';
 import { OtherSettings } from './OtherSettings';
@@ -14,15 +15,40 @@ import { ShamirTab } from './shamir/ShamirTab';
 // Props setIsLoading, isSuperAdmin, otherBanks
 class Settings extends React.Component {
   state = {
-    activeTab: 'setup', // 'setup', 'options', 'admins', 'permissions', 'urls', 'shamir'
+    activeTab: 'setup', // 'setup', 'options', 'admins', 'sso', 'emails_slo', 'urls', 'shamir'
+    ssoEnabled: false,
+    shamirConfigured: false,
   };
+
+  fetchSSOConfig = async () => {
+    try {
+      const { openidConfigs } = await bankUrlFetch('/api/sso_configurations', 'GET', null);
+      this.setState({ ssoEnabled: !!(openidConfigs && openidConfigs.length > 0) });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  fetchShamirState = async () => {
+    try {
+      const { configs } = await bankUrlFetch('/api/shamir-configs', 'POST', null);
+      this.setState({ shamirConfigured: !!(configs && configs.some((c) => c.isActive)) });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  componentDidMount() {
+    this.fetchSSOConfig();
+    this.fetchShamirState();
+  }
 
   setActiveTab = (tabName) => {
     this.setState({ activeTab: tabName });
   };
 
   render() {
-    const { activeTab } = this.state;
+    const { activeTab, ssoEnabled, shamirConfigured } = this.state;
 
     return (
       <div className="page">
@@ -54,10 +80,16 @@ class Settings extends React.Component {
             {i18n.t('settings_tab_admins')}
           </button>
           <button
-            className={`tab-button ${activeTab === 'permissions' ? 'active' : ''}`}
-            onClick={() => this.setActiveTab('permissions')}
+            className={`tab-button ${activeTab === 'sso' ? 'active' : ''}`}
+            onClick={() => this.setActiveTab('sso')}
           >
-            {i18n.t('settings_tab_permissions')}
+            {i18n.t('settings_tab_sso')}
+          </button>
+          <button
+            className={`tab-button ${activeTab === 'emails_slo' ? 'active' : ''}`}
+            onClick={() => this.setActiveTab('emails_slo')}
+          >
+            {i18n.t('settings_tab_emails_slo')}
           </button>
           <button
             className={`tab-button ${activeTab === 'urls' ? 'active' : ''}`}
@@ -79,13 +111,51 @@ class Settings extends React.Component {
           {activeTab === 'options' && <OtherSettings setIsLoading={this.props.setIsLoading} />}
 
           {activeTab === 'admins' && <BankAdmins setIsLoading={this.props.setIsLoading} />}
-          {activeTab === 'shamir' && <ShamirTab setIsLoading={this.props.setIsLoading} />}
+          {activeTab === 'shamir' && (
+            <ShamirTab
+              setIsLoading={this.props.setIsLoading}
+              onConfigsLoaded={(configs) =>
+                this.setState({ shamirConfigured: !!(configs && configs.some((c) => c.isActive)) })
+              }
+            />
+          )}
 
-          {activeTab === 'permissions' && (
+          {activeTab === 'sso' && (
             <div>
-              <OpenidConfiguration setIsLoading={this.props.setIsLoading} />
-              <MicrosoftEntraConfig setIsLoading={this.props.setIsLoading} />
-              <AllowedEmails setIsLoading={this.props.setIsLoading} />
+              <OpenidConfiguration
+                setIsLoading={this.props.setIsLoading}
+                shamirConfigured={shamirConfigured}
+                onSSOChanged={(isEnabled) => this.setState({ ssoEnabled: isEnabled })}
+              />
+            </div>
+          )}
+
+          {activeTab === 'emails_slo' && (
+            <div>
+              <div
+                style={{
+                  background: '#f0f4ff',
+                  border: '1px solid #c5d0e6',
+                  borderRadius: 6,
+                  padding: '16px 20px',
+                  marginBottom: 24,
+                  marginTop: 20,
+                }}
+              >
+                <p style={{ margin: 0, whiteSpace: 'pre-line' }}>
+                  {i18n.t('settings_emails_slo_preamble')}
+                </p>
+              </div>
+              <AllowedEmails
+                setIsLoading={this.props.setIsLoading}
+                ssoEnabled={ssoEnabled}
+                shamirConfigured={shamirConfigured}
+              />
+              <MicrosoftEntraConfig
+                setIsLoading={this.props.setIsLoading}
+                ssoEnabled={ssoEnabled}
+                shamirConfigured={shamirConfigured}
+              />
             </div>
           )}
 

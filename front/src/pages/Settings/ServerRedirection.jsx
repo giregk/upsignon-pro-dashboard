@@ -10,7 +10,7 @@ export class ServerRedirection extends React.Component {
   };
   fetchRedirectionUrl = async () => {
     try {
-      const { redirectionUrl } = await bankUrlFetch('/api/redirection_url', 'POST', null);
+      const { redirectionUrl } = await bankUrlFetch('/api/redirection_url', 'GET', null);
       if (redirectionUrl) {
         this.setState({
           redirectionUrl: redirectionUrl,

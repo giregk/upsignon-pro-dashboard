@@ -18,6 +18,8 @@ const translations = {
   pagination_pages: 'pages',
   validate: 'Valider',
   cancel: 'Annuler',
+  activate: 'Activer',
+  deactivate: 'Désactiver',
   request_error: 'La requête au serveur a échouée, vous devez peut-être vous reconnecter.',
   network_error: 'Erreur réseau',
   unknown_error: 'Erreur inconnue',
@@ -29,7 +31,8 @@ const translations = {
   settings_tab_setup: 'Lien de configuration',
   settings_tab_options: 'Options de configuration',
   settings_tab_admins: 'Administrateurs',
-  settings_tab_permissions: 'Autorisations',
+  settings_tab_sso: 'SSO',
+  settings_tab_emails_slo: 'Emails autorisés et SLO',
   settings_tab_urls: 'Sites web pré-renseignés',
   settings_tab_shamir: 'Protocole de secours',
   menu_shared_devices: 'Appareils partagés',
@@ -128,12 +131,16 @@ const translations = {
     "Assurez-vous que la requête a bien été faite par l'utilisateur lui-même.\n\nAccorder ?",
   settings_server_redirection: 'ATTENTION : Redirection !',
   settings_server_redirection_new_url_label: 'Cette banque est redirigée vers',
-  settings_openid_config:
-    'Single Sign On (optionnel) - enrôlement et mot de passe oublié - app v7.13.0 et plus',
+  settings_openid_config: 'Single Sign On',
   settings_openid_config_pitch:
     "Le paramètre SSO permet d'activer l'authentification unique pour la banque sélectionnée. Choisissez un fournisseur d'identité parmi les options proposées, ou bien saisissez une URL via le champ personnalisé prévu à cet effet.",
+  settings_openid_config_pitch_mode1: 'Enrôlement et mot de passe oublié (v7.13.0 et plus) :',
   settings_openid_config_details:
-    'Une fois le SSO activé, tous les utilisateurs rattachés à cette banque pourront automatiquement enrôler leur coffre-fort sur leur appareil via cette méthode, sans passer par la validation par e-mail.',
+    "À partir de la version 7.13.0 de l'application, le SSO permet aux utilisateurs d'enrôler leur coffre-fort et d\'utiliser la fonction mot de passe oublié sans passer par la validation par e-mail.",
+  settings_openid_config_pitch_mode2: 'Déverrouillage sans mot de passe (v7.20.0 et plus) :',
+  settings_passwordless_section_title: 'Déverrouillage sans mot de passe',
+  settings_sso_slo_message:
+    "À partir de la version 7.20.0 de l'application, le SSO permet aux utilisateurs sélectionnés de déverrouiller leur coffre-fort sans mot de passe.\n\nEn raison des contraintes imposées par le remplissage automatique sur iOS et Android, et pour le support du mode hors-ligne, le Single Log Out (SLO) n'est pas pris en charge par défaut.\n\nLes utilisateurs de Microsoft peuvent configurer un SLO en liant leur annuaire Microsoft Entra ID dans l'onglet \"Emails autorisés et SLO\".",
   settings_openid_unset: 'Désactivé',
   settings_openid_custom_config: 'Service personnalisé',
   settings_openid_custom_config_submit: 'Valider',
@@ -141,6 +148,7 @@ const translations = {
   settings_openid_invalid_url: 'URL invalide. Veuillez saisir une URL correcte.',
   settings_openid_invalid_url_protocol: "L'URL doit commencer par http:// ou https://",
   settings_openid_custom_config_client_id: 'Identifiant du client',
+  settings_openid_disable_sso: 'Désactiver le SSO',
   settings_openid_confirm_erase_previous_config:
     'Ceci effacera votre configuration actuelle. Êtes-vous sûr ?',
   settings_security: 'Paramètres de sécurité',
@@ -152,6 +160,17 @@ const translations = {
   settings_allowed_emails_new: "Nouveau modèle d'adresse email",
   settings_allowed_emails_delete_warning:
     "Ceci ne supprimera pas les coffres-forts pour les utilisateurs correspondant à ce modèle d'adresse email.\n\nSupprimer ?",
+  settings_allowed_emails_passwordless_auth: 'Déverrouillage sans mot de passe',
+  settings_allowed_emails_passwordless_auth_enable_warning:
+    'Attention : une fois activé, les utilisateurs concernés ne pourront plus se connecter avec leur mot de passe maître. Pour revenir au mode avec mot de passe, chaque utilisateur devra utiliser la fonction "mot de passe oublié".\n\nActiver le déverrouillage sans mot de passe ?',
+  settings_allowed_emails_passwordless_auth_disable_warning:
+    'Attention : en désactivant ce mode, les utilisateurs concernés ne pourront plus se connecter sans mot de passe maître. Pour revenir au mode avec mot de passe, chaque utilisateur devra utiliser la fonction "mot de passe oublié".\n\nDésactiver le déverrouillage sans mot de passe ?',
+  settings_allowed_emails_passwordless_auth_no_shamir_warning:
+    "\u26a0\ufe0f RISQUE CRITIQUE : aucun protocole de secours Shamir n'est configuré sur cette banque de coffres-forts.\n\nSi vous activez le mode sans mot de passe et qu'un utilisateur perd tous ses appareils autorisés, son coffre-fort sera définitivement inaccessible — même pour l'administrateur — car il n'existe aucun mécanisme de récupération.\n\nIl est fortement recommandé de configurer Shamir avant d'activer cette fonctionnalité.",
+  settings_openid_disable_warning:
+    'Attention, si vous désactivez le SSO, les utilisateurs configurés avec un déverrouillage sans mot de passe devront utiliser la fonction "mot de passe" oublié pour pouvoir de nouveau accéder à leur coffre-fort.',
+  settings_emails_slo_preamble:
+    "Pour avoir le droit de créer un coffre-fort dans cette banque, un utilisateur doit être autorisé soit par son adresse email (liste ci-dessous), soit être ajouté à l'application UpSignOn dans Microsoft Entra ID.\n\nSi, à un moment donné, un utilisateur n'est plus autorisé par aucune des deux méthodes, son coffre-fort est immédiatement désactivé et son accès hors-ligne est révoqué à la prochaine tentative de connexion de chacun de ses appareils. Cela permet un Single Log Out (SLO). Le serveur effectue cette vérification deux fois par jour.",
   settings_admin_email: 'Email',
   settings_admin_created_at: 'Ajouté le',
   settings_admin_banks: 'Banques de coffres-forts',
@@ -424,6 +443,10 @@ const translations = {
   bank_setting_microsoft_entra_test_all_users: 'Utilisateurs UpSignOn:',
   bank_setting_microsoft_entra_test_user_authorized: 'Utilisateur autorisé :',
   bank_setting_microsoft_entra_test_user_gs: 'Groupes associés à cet utilisateur :',
+  bank_setting_microsoft_entra_passwordless_auth_label:
+    'Déverrouillage sans mot de passe pour les utilisateurs autorisés via MS Entra ID',
+  bank_setting_microsoft_entra_passwordless_auth_conflict_info:
+    "En cas de conflit entre la configuration des adresses email autorisées et cette configuration Entra ID (pour une même adresse email, une source active le mode sans mot de passe, l'autre non), le mode sans mot de passe s'applique.",
   licences_reseller_name: 'Groupe de banques',
   licences_bank_name: 'Banque',
   licences_bank_distribution: 'Répartition',

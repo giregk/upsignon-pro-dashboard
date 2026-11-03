@@ -21,7 +21,7 @@ const shamirPages = {
   configurationHistory: 'configurationHistory',
 };
 
-// Props : setIsLoading
+// Props : setIsLoading, onConfigsLoaded
 export const ShamirTab = (p) => {
   const { setIsLoading } = p;
   const [currentPage, setCurrentPage] = useState(null);
@@ -38,6 +38,7 @@ export const ShamirTab = (p) => {
       setIsLoading(true);
       const { configs } = await bankUrlFetch('/api/shamir-configs', 'POST', null);
       setConfigs(configs);
+      p.onConfigsLoaded?.(configs);
       if (configs.length > 0) {
         setCurrentPage(shamirPages.currentConfig);
       } else {
