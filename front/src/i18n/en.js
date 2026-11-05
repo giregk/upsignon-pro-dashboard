@@ -352,11 +352,11 @@ const translations = {
   sasettings_disable_reset_pwd_manual_admin_check:
     'Deactivate manual admin check for password reset requests',
   sasettings_disable_offline_desktop:
-    'By default, disable the offline mode on MacOS, Windows, Linux',
+    'By default, disable the offline mode on MacOS, Windows, Linux, web',
   sasettings_disable_offline_mobile: 'By default, disable the offline mode on iOS, Android',
-  sasettings_max_autolock_delay_desktop: 'MAXIMUM autolock delay on MacOS, Windows, Linux',
+  sasettings_max_autolock_delay_desktop: 'MAXIMUM autolock delay on MacOS, Windows, Linux, web',
   sasettings_max_autolock_delay_mobile: 'MAXIMUM autolock delay on iOS, Android',
-  sasettings_default_autolock_delay_desktop: 'DEFAULT autolock delay on MacOS, Windows, Linux',
+  sasettings_default_autolock_delay_desktop: 'DEFAULT autolock delay on MacOS, Windows, Linux, web',
   sasettings_default_autolock_delay_mobile: 'DEFAULT autolock delay on iOS, Android',
   sasettings_allow_csv_export: 'By default, allow CSV exports',
   sasettings_allow_windows: 'By default, allow Windows',
