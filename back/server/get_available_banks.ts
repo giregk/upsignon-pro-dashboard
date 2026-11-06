@@ -12,7 +12,7 @@ export const get_available_banks = async (req: any, res: any): Promise<void> => 
         COUNT(DISTINCT u.id) AS nb_users
       FROM banks AS b
       LEFT JOIN users AS u
-        ON u.bank_id=b.id
+        ON u.bank_id=b.id AND (u.archived IS NOT TRUE)
       GROUP BY b.id
       ORDER BY b.name ASC`,
     );

@@ -36,3 +36,72 @@
   align-items: center;
   cursor: help;
 }
+
+.userActions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.userActionGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.userActionGroup + .userActionGroup {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(88, 96, 129, 0.2);
+}
+
+.userActionButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid rgba(88, 96, 129, 0.4);
+  background-color: white;
+  color: #333;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 1;
+  padding: 6px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+.userActionButton:hover {
+  border-color: rgba(88, 96, 129, 0.6);
+  background-color: #f8f9fa;
+}
+.userActionButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+  pointer-events: none;
+}
+.userActionButtonPrimary {
+  border-color: #4d54d1;
+  color: #4d54d1;
+}
+.userActionButtonPrimary:hover {
+  background-color: rgba(77, 84, 209, 0.08);
+}
+.userActionButtonDanger {
+  border-color: #e53e3e;
+  color: #e53e3e;
+}
+.userActionButtonDanger:hover {
+  background-color: rgba(229, 62, 62, 0.08);
+}
+
+.userConfirmModalButtons {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.userConfirmModalButtons .whiteButton,
+.userConfirmModalButtons .submitButton {
+  min-width: 0;
+}

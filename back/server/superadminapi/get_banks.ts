@@ -14,7 +14,7 @@ export const get_banks = async (req: any, res: any): Promise<void> => {
         resellers.name as reseller_name
       FROM banks
       LEFT JOIN resellers ON resellers.id=banks.reseller_id
-      LEFT JOIN users ON users.bank_id=banks.id
+      LEFT JOIN users ON users.bank_id=banks.id AND (users.archived IS NOT TRUE)
       GROUP BY banks.id, resellers.id
       ORDER BY resellers.name ASC, banks.name ASC`,
     );

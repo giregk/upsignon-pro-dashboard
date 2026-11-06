@@ -12,18 +12,24 @@ export const get_users = async (req: any, res: any): Promise<void> => {
     // sorting
     const sortingType = parseInt(req.query.sortingType, 10) || 0;
 
+    // sortingType===2 filters on deactivated users, sortingType===3 filters on archived users.
+    // Archived users are excluded from every other view.
+    const archivedFilterClause =
+      sortingType === 3 ? 'AND archived' : 'AND (archived IS NOT TRUE)';
+    const deactivatedFilterClause = sortingType === 2 ? 'AND deactivated' : '';
+
     // COUNT USERS
     let userCount;
     if (isSearching) {
       const countUsersReq = await db.query(
         `SELECT COUNT(id) FROM users WHERE (email LIKE '%' || $1 || '%' OR id::varchar(5) LIKE $1 || '%') AND users.bank_id=$2
-        ${sortingType === 2 ? 'AND deactivated' : ''}`,
+        ${archivedFilterClause} ${deactivatedFilterClause}`,
         [search, req.proxyParamsBankId],
       );
       userCount = parseInt(countUsersReq.rows[0].count, 10);
     } else {
       const countUsersReq = await db.query(
-        `SELECT COUNT(id) FROM users WHERE users.bank_id=$1 ${sortingType === 2 ? 'AND deactivated' : ''}`,
+        `SELECT COUNT(id) FROM users WHERE users.bank_id=$1 ${archivedFilterClause} ${deactivatedFilterClause}`,
         [req.proxyParamsBankId],
       );
       userCount = parseInt(countUsersReq.rows[0].count, 10);
@@ -51,6 +57,7 @@ export const get_users = async (req: any, res: any): Promise<void> => {
     length(u.encrypted_data_2) AS data2_length,
     u.updated_at AS updated_at,
     u.deactivated AS deactivated,
+    u.archived AS archived,
     (SELECT COUNT(ud.id) FROM user_devices AS ud WHERE ud.user_id=u.id) AS nb_devices,
     (SELECT last_sync_date FROM user_devices AS ud WHERE ud.user_id=u.id ORDER BY last_sync_date DESC NULLS LAST LIMIT 1) AS last_sync_date,
     (SELECT COUNT(svr.user_id) FROM shared_vault_recipients AS svr WHERE svr.user_id=u.id) AS nb_shared_items,
@@ -79,12 +86,14 @@ export const get_users = async (req: any, res: any): Promise<void> => {
   INNER JOIN banks AS b ON u.bank_id=b.id
   WHERE u.bank_id=$3
   ${isSearching ? "AND (u.email LIKE '%' || $4 || '%' OR u.id::varchar(5) LIKE $4 || '%')" : ''}
+  ${archivedFilterClause}
+  ${deactivatedFilterClause}
   ${
     sortingType === 0
       ? 'ORDER BY nb_accounts_with_duplicated_password DESC, nb_accounts_weak DESC, nb_accounts_medium DESC, u.email ASC'
       : sortingType === 1
         ? 'ORDER BY last_sync_date ASC NULLS FIRST, u.email ASC'
-        : 'AND u.deactivated ORDER BY u.email ASC'
+        : 'ORDER BY u.email ASC'
   }
   LIMIT $1
   OFFSET $2

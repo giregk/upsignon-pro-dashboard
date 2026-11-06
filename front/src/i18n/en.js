@@ -47,6 +47,21 @@ const translations = {
   user_filter_by_deactivated: 'Deactivated',
   user_deactivated: 'Deactivated vault',
   reactivate: 'Reactivate',
+  deactivate: 'Deactivate',
+  user_filter_by_archived: 'Archived',
+  user_archived: 'Archived vault',
+  archive: 'Archive',
+  unarchive: 'Unarchive',
+  user_filtering_by_archived:
+    'Archived vaults do not appear in any other view, are no longer counted in your consumed licences, and are no longer subject to automatic deactivation.',
+  user_archive_confirm_title: 'Archive this vault',
+  user_archive_confirm_text:
+    'Are you sure you want to archive the vault $email? It will no longer be visible in the user list (except via the dedicated filter) and will no longer count as a consumed licence.',
+  user_unarchive_confirm_title: 'Unarchive this vault',
+  user_unarchive_confirm_text:
+    'Are you sure you want to unarchive the vault $email? This will consume a licence.',
+  user_archive_error: 'Archiving the vault failed.',
+  user_unarchive_error: 'Unarchiving the vault failed. There may be no licence available anymore.',
   user_sorting_by_vuln:
     'Sorting by vulnerability: Vaults are sorted by descending number of duplicated passwords, then by descending number of weak passwords, then by descending number of medium passwords, then by alphabetical order.',
   user_sorting_by_time:

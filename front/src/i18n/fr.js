@@ -46,6 +46,22 @@ const translations = {
   user_filter_by_deactivated: 'Désactivés',
   user_deactivated: 'Coffre-fort désactivé',
   reactivate: 'Réactiver',
+  deactivate: 'Désactiver',
+  user_filter_by_archived: 'Archivés',
+  user_archived: 'Coffre-fort archivé',
+  archive: 'Archiver',
+  unarchive: 'Désarchiver',
+  user_filtering_by_archived:
+    "Les coffres-forts archivés n'apparaissent dans aucune autre vue, ne sont plus décomptés dans vos licences consommées et ne sont plus concernés par la désactivation automatique.",
+  user_archive_confirm_title: 'Archiver ce coffre-fort',
+  user_archive_confirm_text:
+    "Êtes-vous sûr de vouloir archiver le coffre-fort $email ? Il ne sera plus visible dans la liste des coffres-forts (sauf via le filtre dédié) et ne comptera plus dans vos licences consommées.",
+  user_unarchive_confirm_title: 'Désarchiver ce coffre-fort',
+  user_unarchive_confirm_text:
+    'Êtes-vous sûr de vouloir désarchiver le coffre-fort $email ? Cette opération consommera une licence.',
+  user_archive_error: "L'archivage du coffre-fort a échoué.",
+  user_unarchive_error:
+    "Le désarchivage du coffre-fort a échoué. Il n'y a peut-être plus de licence disponible.",
   user_sorting_by_vuln:
     'Tri par vulnérabilité : Les coffres-forts sont triés par nombre décroissant de mots de passe dupliqués, puis par nombre décroissant de mots de passe faibles, puis par nombre décroissant de mots de passe moyens, puis par ordre alphabétique.',
   user_sorting_by_time:

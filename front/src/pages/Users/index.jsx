@@ -7,6 +7,7 @@ import { i18n } from '../../i18n/i18n';
 import { UserDevices } from './UserDevices';
 import './users.css';
 import { Toggler } from '../../helpers/Toggler';
+import { Modal } from '../../helpers/Modal/Modal';
 import { getDateBack1Month, getDateBack2Weeks } from '../../helpers/dateHelper';
 import { StatsCell } from '../../helpers/statsCell';
 import { settingsConfig } from '../../helpers/settingsConfig';
@@ -28,6 +29,7 @@ class Users extends React.Component {
     sortingType: 0,
     showAllSettings: false,
     showUserSettings: {},
+    pendingArchiveAction: null,
   };
   getCurrentQueryParameters = () => {
     const queryParamsArray = window.location.search
@@ -112,6 +114,52 @@ class Users extends React.Component {
     } catch (e) {
       console.error(e);
     } finally {
+      this.props.setIsLoading(false);
+    }
+  };
+  deactivateUser = async (userId) => {
+    try {
+      this.props.setIsLoading(true);
+      await bankUrlFetch(`/api/deactivate-user/${userId}`, 'POST', null);
+      await this.loadUsers();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      this.props.setIsLoading(false);
+    }
+  };
+
+  openArchiveConfirmModal = (type, userId, email) => {
+    this.setState({ pendingArchiveAction: { type, userId, email } });
+    document.getElementById('archiveConfirmModal').showModal();
+  };
+  closeArchiveConfirmModal = () => {
+    document.getElementById('archiveConfirmModal').close();
+    this.setState({ pendingArchiveAction: null });
+  };
+  confirmArchiveAction = async () => {
+    const { pendingArchiveAction } = this.state;
+    if (!pendingArchiveAction) return;
+    document.getElementById('archiveConfirmModal').close();
+    try {
+      this.props.setIsLoading(true);
+      await bankUrlFetch(
+        `/api/${pendingArchiveAction.type}-user/${pendingArchiveAction.userId}`,
+        'POST',
+        null,
+      );
+      await this.loadUsers();
+    } catch (e) {
+      console.error(e);
+      toast.error(
+        i18n.t(
+          pendingArchiveAction.type === 'unarchive'
+            ? 'user_unarchive_error'
+            : 'user_archive_error',
+        ),
+      );
+    } finally {
+      this.setState({ pendingArchiveAction: null });
       this.props.setIsLoading(false);
     }
   };
@@ -308,7 +356,10 @@ class Users extends React.Component {
     } else if (this.state.users.length === 1 && !!this.searchInput?.value) {
       searchInputStyle.borderColor = 'green';
     }
+    const { pendingArchiveAction } = this.state;
+    const isUnarchiving = pendingArchiveAction?.type === 'unarchive';
     return (
+      <>
       <div className="page">
         <h1>{`${i18n.t('menu_users')} - ${i18n.t('total_count', {
           count: this.props.totalCount,
@@ -342,6 +393,11 @@ class Users extends React.Component {
                 title: i18n.t('user_filter_by_deactivated'),
                 isCurrent: this.state.sortingType === 2,
               },
+              {
+                key: 3,
+                title: i18n.t('user_filter_by_archived'),
+                isCurrent: this.state.sortingType === 3,
+              },
             ]}
             onSelect={this.toggleSorting}
           />
@@ -358,6 +414,11 @@ class Users extends React.Component {
             <strong style={{ fontSize: 16 }}>
               {i18n.t('user_filtering_by_deactivated_interval')}
             </strong>
+          </div>
+        )}
+        {this.state.sortingType === 3 && (
+          <div style={{ marginBottom: 20 }}>
+            <p>{i18n.t('user_filtering_by_archived')}</p>
           </div>
         )}
         <PaginationBar
@@ -467,7 +528,7 @@ class Users extends React.Component {
                           i18n.t('user_nb_shared_items_value', { nb: u.nb_shared_items || 0 })}
                       </div>
                     </td>
-                    {!u.deactivated ? (
+                    {!u.deactivated && !u.archived ? (
                       <StatsCell
                         nb_accounts_strong={u.nb_accounts_strong}
                         nb_accounts_medium={u.nb_accounts_medium}
@@ -482,7 +543,7 @@ class Users extends React.Component {
                     ) : (
                       <td></td>
                     )}
-                    {!u.deactivated && (
+                    {!u.deactivated && !u.archived && (
                       <td>
                         <div
                           className="action"
@@ -505,8 +566,13 @@ class Users extends React.Component {
                         </div>
                       </td>
                     )}
-                    {u.deactivated && (
-                      <td style={{ backgroundColor: 'rgb(168, 50, 50)', color: 'white' }}>
+                    {(u.deactivated || u.archived) && (
+                      <td
+                        style={{
+                          backgroundColor: u.archived ? 'rgb(120, 120, 120)' : 'rgb(168, 50, 50)',
+                          color: 'white',
+                        }}
+                      >
                         <div
                           style={{
                             display: 'flex',
@@ -514,25 +580,73 @@ class Users extends React.Component {
                             justifyContent: 'center',
                           }}
                         >
-                          {i18n.t('user_deactivated').toUpperCase()}
+                          {i18n.t(u.archived ? 'user_archived' : 'user_deactivated').toUpperCase()}
                         </div>
                       </td>
                     )}
                     <td>
-                      <div
-                        className={`action ${isRestrictedSuperadmin ? 'disabledUI' : ''}`}
-                        onClick={() => this.deleteUserWithWarning(u.user_id, u.email)}
-                      >
-                        {i18n.t('delete')}
-                      </div>
-                      {u.deactivated && (
-                        <div
-                          className={`action ${isRestrictedSuperadmin ? 'disabledUI' : ''}`}
-                          onClick={() => this.reactivateUser(u.user_id)}
-                        >
-                          {i18n.t('reactivate')}
+                      <div className="userActions">
+                        {!u.archived && (
+                          <div className="userActionGroup">
+                            {!u.deactivated ? (
+                              <button
+                                type="button"
+                                className="userActionButton"
+                                disabled={isRestrictedSuperadmin}
+                                onClick={() => this.deactivateUser(u.user_id)}
+                              >
+                                {i18n.t('deactivate')}
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                className="userActionButton"
+                                disabled={isRestrictedSuperadmin}
+                                onClick={() => this.reactivateUser(u.user_id)}
+                              >
+                                {i18n.t('reactivate')}
+                              </button>
+                            )}
+                          </div>
+                        )}
+                        <div className="userActionGroup">
+                          {!u.archived ? (
+                            <button
+                              type="button"
+                              className="userActionButton userActionButtonPrimary"
+                              disabled={isRestrictedSuperadmin}
+                              onClick={() =>
+                                this.openArchiveConfirmModal('archive', u.user_id, u.email)
+                              }
+                            >
+                              {i18n.t('archive')}
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="userActionButton userActionButtonPrimary"
+                              disabled={isRestrictedSuperadmin}
+                              onClick={() =>
+                                this.openArchiveConfirmModal('unarchive', u.user_id, u.email)
+                              }
+                            >
+                              {i18n.t('unarchive')}
+                            </button>
+                          )}
                         </div>
-                      )}
+                        {u.archived && (
+                          <div className="userActionGroup">
+                            <button
+                              type="button"
+                              className="userActionButton userActionButtonDanger"
+                              disabled={isRestrictedSuperadmin}
+                              onClick={() => this.deleteUserWithWarning(u.user_id, u.email)}
+                            >
+                              {i18n.t('delete')}
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td>
                       {u.shamir_setup && (
@@ -580,6 +694,31 @@ class Users extends React.Component {
           itemUnitName={i18n.t('user_unit_name')}
         />
       </div>
+      <Modal
+        id="archiveConfirmModal"
+        title={i18n.t(isUnarchiving ? 'user_unarchive_confirm_title' : 'user_archive_confirm_title')}
+        onClosed={() => this.setState({ pendingArchiveAction: null })}
+      >
+        <div>
+          {i18n.t(
+            isUnarchiving ? 'user_unarchive_confirm_text' : 'user_archive_confirm_text',
+            { email: pendingArchiveAction?.email },
+          )}
+        </div>
+        <div className="userConfirmModalButtons">
+          <button onClick={this.closeArchiveConfirmModal} className="whiteButton">
+            {i18n.t('cancel')}
+          </button>
+          <button
+            onClick={this.confirmArchiveAction}
+            disabled={isRestrictedSuperadmin}
+            className="submitButton"
+          >
+            {i18n.t(isUnarchiving ? 'unarchive' : 'archive')}
+          </button>
+        </div>
+      </Modal>
+      </>
     );
   }
 }

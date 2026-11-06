@@ -49,6 +49,9 @@ import { getRedirectionUrl } from './get_redirection_url';
 import { get_bank_entra_config } from './get_bank_entra_config';
 import { test_ms_entra } from './test_ms_entra';
 import { reactivate_user } from './reactivate_user';
+import { deactivate_user } from './deactivate_user';
+import { archive_user } from './archive_user';
+import { unarchive_user } from './unarchive_user';
 import { get_licences } from './get_licences';
 import { listMSEntraAPIs, reloadMSEntraInstance } from './reload_ms_entra_instance';
 import { get_bank_url } from './get_bank_url';
@@ -88,6 +91,9 @@ apiRouter.post('/delete-user/:userId', delete_user);
 apiRouter.post('/update-user-email', update_user_email);
 apiRouter.post('/update-user-setting', update_user_setting);
 apiRouter.post('/reactivate-user/:userId', reactivate_user);
+apiRouter.post('/deactivate-user/:userId', deactivate_user);
+apiRouter.post('/archive-user/:userId', archive_user);
+apiRouter.post('/unarchive-user/:userId', unarchive_user);
 
 // Devices
 apiRouter.get('/user-devices/:userId', get_user_devices);
