@@ -28,24 +28,115 @@ export const recomputeSessionAuthorizationsForAdminByEmail = async (
   }
 };
 
+const computeAdminRole = (adminEmail: string, dbRole: AdminRoles): AdminRoles => {
+  if (
+    !env.IS_PRODUCTION &&
+    !env.DEV_FALLBACK_USE_DB_ROLE &&
+    adminEmail === env.DEV_FALLBACK_ADMIN_EMAIL
+  ) {
+    return 'superadmin';
+  }
+  return dbRole;
+};
+
+// Recomputes the authorizations of all the admins of a reseller using a constant number of
+// queries (it does not depend on the number of admins).
+// The current admin's session (req.session) is updated before this function resolves, so that the
+// response can safely be sent right after. The sessions stored in DB for the other admins are
+// updated in the background (errors are logged), the caller does not need to wait for them.
 export const recomputeSessionAuthorizationsForAdminsByResellerId = async (
   resellerId: string,
   req?: Request,
 ): Promise<void> => {
   try {
-    const adminsRes = await db.query('SELECT id FROM admins WHERE reseller_id=$1', [resellerId]);
+    const [adminsRes, banksInResellerRes] = await Promise.all([
+      db.query('SELECT id, email, admin_role FROM admins WHERE reseller_id=$1', [resellerId]),
+      db.query('SELECT id FROM banks WHERE reseller_id=$1', [resellerId]),
+    ]);
+    if (adminsRes.rows.length === 0) {
+      return;
+    }
+    const adminIds: string[] = adminsRes.rows.map((a) => a.id);
+    const adminBanksRes = await db.query(
+      'SELECT admin_id, bank_id FROM admin_banks WHERE admin_id = ANY($1)',
+      [adminIds],
+    );
+    const resellerBankIds: number[] = banksInResellerRes.rows.map((b) => b.id);
+    const directBanksByAdmin = new Map<string, number[]>();
+    for (const row of adminBanksRes.rows) {
+      const list = directBanksByAdmin.get(row.admin_id) ?? [];
+      list.push(row.bank_id);
+      directBanksByAdmin.set(row.admin_id, list);
+    }
+
     // @ts-ignore
     const currentAdminId = req?.session?.adminId;
-    for (let i = 0; i < adminsRes.rows.length; i++) {
-      const adminId = adminsRes.rows[i].id;
-      await recomputeSessionAuthorizationsForAdminById(
-        adminId,
-        adminId === currentAdminId ? req : null,
+    const otherAdmins: {
+      adminId: string;
+      adminEmail: string;
+      adminRole: AdminRoles;
+      banks: number[];
+    }[] = [];
+    for (const admin of adminsRes.rows) {
+      const bankIds = [...(directBanksByAdmin.get(admin.id) ?? [])];
+      for (const b of resellerBankIds) {
+        if (bankIds.indexOf(b) === -1) {
+          bankIds.push(b);
+        }
+      }
+      const adminRole = computeAdminRole(admin.email, admin.admin_role);
+      if (req && admin.id === currentAdminId) {
+        // @ts-ignore
+        req.session.adminEmail = admin.email;
+        // @ts-ignore
+        req.session.adminId = admin.id;
+        // @ts-ignore
+        req.session.adminRole = adminRole;
+        // @ts-ignore
+        req.session.banks = bankIds;
+        // @ts-ignore
+        req.session.resellerId = resellerId;
+        // NB, do not do 'req.session =', this breaks the system
+      } else {
+        otherAdmins.push({ adminId: admin.id, adminEmail: admin.email, adminRole, banks: bankIds });
+      }
+    }
+
+    if (otherAdmins.length > 0) {
+      updateStoredSessions(otherAdmins, resellerId).catch((e) =>
+        logError('updateSessionAuthorizations background', e),
       );
     }
   } catch (e) {
     logError('updateSessionAuthorizations', e);
     return;
+  }
+};
+
+const updateStoredSessions = async (
+  admins: { adminId: string; adminEmail: string; adminRole: AdminRoles; banks: number[] }[],
+  resellerId: string,
+): Promise<void> => {
+  const sessionsRes = await db.query(
+    "SELECT session_id, session_data FROM admin_sessions WHERE session_data ->> 'adminEmail' = ANY($1)",
+    [admins.map((a) => a.adminEmail)],
+  );
+  const adminsByEmail = new Map(admins.map((a) => [a.adminEmail, a]));
+  for (const session of sessionsRes.rows) {
+    const admin = adminsByEmail.get(session.session_data.adminEmail);
+    if (!admin) continue;
+    const newSession = {
+      ...session.session_data,
+      adminEmail: admin.adminEmail,
+      adminId: admin.adminId,
+      adminRole: admin.adminRole,
+      banks: admin.banks,
+      resellerId,
+    };
+    await db.query(`UPDATE admin_sessions SET session_data = $1 WHERE session_id = $2`, [
+      newSession,
+      session.session_id,
+    ]);
   }
 };
 
