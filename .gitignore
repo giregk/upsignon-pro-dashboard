@@ -1,2 +1,4 @@
 logs
 deploy-pro-test.sh
+# Claude Code worktrees (never commit)
+.claude/worktrees/
