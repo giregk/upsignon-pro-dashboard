@@ -28,8 +28,6 @@ input {
 .disabledUI {
   opacity: 0.5;
   pointer-events: none;
-  filter: grayscale(50%);
-  transition: all 0.2s ease-in-out;
 }
 
 :root {

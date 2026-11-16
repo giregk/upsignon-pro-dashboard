@@ -167,6 +167,9 @@ class Banks extends React.Component {
   componentDidMount() {
     this.fetchResellers();
   }
+  askDeleteBank = (id) => {
+    this.setState({ bankToDeleteId: id });
+  };
   toggleAllSettings = () => {
     this.setState((s) => {
       if (s.showAllSettings) {
@@ -236,6 +239,44 @@ class Banks extends React.Component {
     localStorage.setItem('search', value);
   };
 
+  _filteredCache = { key: null, result: [] };
+  getFilteredBanks = () => {
+    const { search, filterType, sortType, sortDirection } = this.state;
+    const banks = this.props.banks;
+    const c = this._filteredCache;
+    if (
+      c.key &&
+      c.key.banks === banks &&
+      c.key.search === search &&
+      c.key.filterType === filterType &&
+      c.key.sortType === sortType &&
+      c.key.sortDirection === sortDirection
+    ) {
+      return c.result;
+    }
+    const ascending = sortDirection === 'asc';
+    const result = SearchByFields(banks, search, [
+      'id',
+      'name',
+      'reseller_name',
+      'settings.SALES_REP',
+    ])
+      .filter((bank) => filterType === 0 || bank.settings?.IS_TESTING)
+      .sort((a, b) => {
+        switch (sortType) {
+          case 0:
+            return this.sortByBank(a, b, ascending);
+          case 2:
+            return this.sortByRemainingTrialDays(a, b, ascending);
+          case 1:
+          default:
+            return this.sortByReseller(a, b, ascending);
+        }
+      });
+    this._filteredCache = { key: { banks, search, filterType, sortType, sortDirection }, result };
+    return result;
+  };
+
   render() {
     const bankToDelete = this.props.banks.find((g) => g.id === this.state.bankToDeleteId);
     if (bankToDelete) {
@@ -274,25 +315,7 @@ class Banks extends React.Component {
       );
     }
 
-    const filteredBanks = SearchByFields(this.props.banks, this.state.search, [
-      'id',
-      'name',
-      'reseller_name',
-      'settings.SALES_REP',
-    ])
-      .filter((bank) => this.state.filterType === 0 || bank.settings?.IS_TESTING)
-      .sort((a, b) => {
-        const ascending = this.state.sortDirection === 'asc';
-        switch (this.state.sortType) {
-          case 0:
-            return this.sortByBank(a, b, ascending);
-          case 2:
-            return this.sortByRemainingTrialDays(a, b, ascending);
-          case 1:
-          default:
-            return this.sortByReseller(a, b, ascending);
-        }
-      });
+    const filteredBanks = this.getFilteredBanks();
     return (
       <div>
         <h2>{i18n.t('sasettings_banks')}</h2>
@@ -466,192 +489,19 @@ class Banks extends React.Component {
               </tr>
             </thead>
             <tbody>
-              {filteredBanks.map((bank) => {
-                const showSettings =
-                  this.state.showAllSettings || this.state.showBankSettings[bank.id];
-                return (
-                  <tr key={bank.id}>
-                    <td>
-                      <span
-                        className="action"
-                        onClick={() => {
-                          window.location.href = baseFrontUrl + '/' + bank.id + '/';
-                        }}
-                      >
-                        {i18n.t('sasettings_bank_open')}
-                      </span>
-                    </td>
-                    <td>{bank.id}</td>
-                    {isSaasServer && (
-                      <EditableResellerCell
-                        value={bank.reseller_id}
-                        onChange={(newId) => {
-                          this.updateResellerId(bank.id, newId);
-                        }}
-                        resellers={this.state.resellers}
-                      />
-                    )}
-                    <EditableCell
-                      value={bank.name}
-                      onChange={(newVal) => {
-                        if (!newVal) return;
-                        this.updateBankName(bank.id, newVal);
-                      }}
-                    />
-                    <td>{bank.nb_licences}</td>
-                    <td className={bank.nb_users > bank.nb_licences ? 'user-count-warning' : ''}>
-                      {bank.nb_users}
-                    </td>
-                    <td>{new Date(bank.created_at).toLocaleDateString()}</td>
-                    {isSaasServer && (
-                      <td>
-                        <div className="testing-checkbox-container">
-                          <input
-                            type="checkbox"
-                            checked={bank.settings?.IS_TESTING}
-                            onChange={() => {
-                              this.toggleBankSetting(bank.id, {
-                                ...bank.settings,
-                                IS_TESTING: !bank.settings?.IS_TESTING,
-                              });
-                            }}
-                            disabled={isRestrictedSuperadmin}
-                          ></input>
-                          &nbsp;{bank.settings?.IS_TESTING ? i18n.t('yes') : i18n.t('no')}
-                        </div>
-                      </td>
-                    )}
-                    {isSaasServer &&
-                      (bank.settings?.IS_TESTING ? (
-                        <EditableCell
-                          type="date"
-                          value={bank.settings?.TESTING_EXPIRATION_DATE}
-                          className={
-                            !bank.settings?.TESTING_EXPIRATION_DATE ||
-                            new Date(bank.settings?.TESTING_EXPIRATION_DATE) < new Date()
-                              ? 'expired-date'
-                              : ''
-                          }
-                          onChange={(newVal) => {
-                            this.toggleBankSetting(bank.id, {
-                              ...bank.settings,
-                              TESTING_EXPIRATION_DATE: newVal,
-                            });
-                          }}
-                          disabled={isRestrictedSuperadmin}
-                        />
-                      ) : (
-                        <td>N/A</td>
-                      ))}
-                    {isSaasServer && (
-                      <td>
-                        {bank.settings?.IS_TESTING && bank.settings?.TESTING_EXPIRATION_DATE
-                          ? (() => {
-                              const today = new Date();
-                              const expirationDate = new Date(
-                                bank.settings.TESTING_EXPIRATION_DATE,
-                              );
-                              const diffTime = expirationDate - today;
-                              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                              if (diffDays <= 0) {
-                                const expiredDays = Math.abs(diffDays);
-                                return (
-                                  <span className="expired-text">
-                                    {i18n.t('sasettings_bank_expired_since', {
-                                      days: expiredDays,
-                                      s: expiredDays > 1 ? 's' : '',
-                                    })}
-                                  </span>
-                                );
-                              } else if (diffDays <= 7) {
-                                return (
-                                  <span className="expiring-soon-text">
-                                    {i18n.t('sasettings_bank_days_remaining', {
-                                      days: diffDays,
-                                      s: diffDays > 1 ? 's' : '',
-                                    })}
-                                  </span>
-                                );
-                              } else {
-                                return (
-                                  <span>
-                                    {i18n.t('sasettings_bank_days_remaining', {
-                                      days: diffDays,
-                                      s: diffDays > 1 ? 's' : '',
-                                    })}
-                                  </span>
-                                );
-                              }
-                            })()
-                          : 'N/A'}
-                      </td>
-                    )}
-                    {isSaasServer && (
-                      <EditableCell
-                        value={bank.settings?.SALES_REP || ''}
-                        onChange={(newVal) => {
-                          if (
-                            newVal &&
-                            !newVal
-                              .toLowerCase()
-                              .match(
-                                /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|.(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/,
-                              )
-                          ) {
-                            toast.warn(i18n.t('sasettings_bank_sales_rep_must_be_email'));
-                            return;
-                          }
-                          this.toggleBankSetting(bank.id, {
-                            ...bank.settings,
-                            SALES_REP: newVal,
-                          });
-                        }}
-                      />
-                    )}
-                    {!isRestrictedSuperadmin && (
-                      <td className={showSettings ? 'settings-column-expanded' : ''}>
-                        <div
-                          className="action"
-                          onClick={() => this.toggleShowBankSettings(bank.id)}
-                        >
-                          {i18n.t('settings_bank_settings_toggle_bank_settings')}
-                        </div>
-                        {showSettings && (
-                          <>
-                            {Object.keys(settingsConfig).map((k) => (
-                              <InlineSetting
-                                key={k}
-                                bank={bank}
-                                settingNameInDB={k}
-                                toggleBankSetting={this.toggleBankSetting}
-                              />
-                            ))}
-                            {Object.keys(autolockDelaySettings).map((k) => (
-                              <AutolockDelaySetting
-                                key={k}
-                                bank={bank}
-                                settingNameInDB={k}
-                                toggleBankSetting={this.toggleBankSetting}
-                              />
-                            ))}
-                          </>
-                        )}
-                      </td>
-                    )}
-                    {!isRestrictedSuperadmin && (
-                      <td>
-                        <div
-                          className={`action ${isRestrictedSuperadmin ? 'disabledUI' : ''}`}
-                          onClick={() => this.setState({ bankToDeleteId: bank.id })}
-                        >
-                          {i18n.t('delete')}
-                        </div>
-                      </td>
-                    )}
-                  </tr>
-                );
-              })}
+              {filteredBanks.map((bank) => (
+                <BankRow
+                  key={bank.id}
+                  bank={bank}
+                  resellers={this.state.resellers}
+                  showSettings={!!(this.state.showAllSettings || this.state.showBankSettings[bank.id])}
+                  updateResellerId={this.updateResellerId}
+                  updateBankName={this.updateBankName}
+                  toggleBankSetting={this.toggleBankSetting}
+                  toggleShowBankSettings={this.toggleShowBankSettings}
+                  onAskDelete={this.askDeleteBank}
+                />
+              ))}
               <tr className="total-row">
                 <td>{i18n.t('total')}</td>
                 <td></td>
@@ -674,6 +524,201 @@ class Banks extends React.Component {
     );
   }
 }
+
+const BankRow = React.memo(function BankRow(props) {
+  const {
+    bank,
+    resellers,
+    showSettings,
+    updateResellerId,
+    updateBankName,
+    toggleBankSetting,
+    toggleShowBankSettings,
+    onAskDelete,
+  } = props;
+  return (
+          <tr key={bank.id}>
+            <td>
+              <span
+                className="action"
+                onClick={() => {
+                  window.location.href = baseFrontUrl + '/' + bank.id + '/';
+                }}
+              >
+                {i18n.t('sasettings_bank_open')}
+              </span>
+            </td>
+            <td>{bank.id}</td>
+            {isSaasServer && (
+              <EditableResellerCell
+                value={bank.reseller_id}
+                onChange={(newId) => {
+                  updateResellerId(bank.id, newId);
+                }}
+                resellers={resellers}
+              />
+            )}
+            <EditableCell
+              value={bank.name}
+              onChange={(newVal) => {
+                if (!newVal) return;
+                updateBankName(bank.id, newVal);
+              }}
+            />
+            <td>{bank.nb_licences}</td>
+            <td className={bank.nb_users > bank.nb_licences ? 'user-count-warning' : ''}>
+              {bank.nb_users}
+            </td>
+            <td>{new Date(bank.created_at).toLocaleDateString()}</td>
+            {isSaasServer && (
+              <td>
+                <div className="testing-checkbox-container">
+                  <input
+                    type="checkbox"
+                    checked={bank.settings?.IS_TESTING}
+                    onChange={() => {
+                      toggleBankSetting(bank.id, {
+                        ...bank.settings,
+                        IS_TESTING: !bank.settings?.IS_TESTING,
+                      });
+                    }}
+                    disabled={isRestrictedSuperadmin}
+                  ></input>
+                  &nbsp;{bank.settings?.IS_TESTING ? i18n.t('yes') : i18n.t('no')}
+                </div>
+              </td>
+            )}
+            {isSaasServer &&
+              (bank.settings?.IS_TESTING ? (
+                <EditableCell
+                  type="date"
+                  value={bank.settings?.TESTING_EXPIRATION_DATE}
+                  className={
+                    !bank.settings?.TESTING_EXPIRATION_DATE ||
+                    new Date(bank.settings?.TESTING_EXPIRATION_DATE) < new Date()
+                      ? 'expired-date'
+                      : ''
+                  }
+                  onChange={(newVal) => {
+                    toggleBankSetting(bank.id, {
+                      ...bank.settings,
+                      TESTING_EXPIRATION_DATE: newVal,
+                    });
+                  }}
+                  disabled={isRestrictedSuperadmin}
+                />
+              ) : (
+                <td>N/A</td>
+              ))}
+            {isSaasServer && (
+              <td>
+                {bank.settings?.IS_TESTING && bank.settings?.TESTING_EXPIRATION_DATE
+                  ? (() => {
+                      const today = new Date();
+                      const expirationDate = new Date(
+                        bank.settings.TESTING_EXPIRATION_DATE,
+                      );
+                      const diffTime = expirationDate - today;
+                      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                      if (diffDays <= 0) {
+                        const expiredDays = Math.abs(diffDays);
+                        return (
+                          <span className="expired-text">
+                            {i18n.t('sasettings_bank_expired_since', {
+                              days: expiredDays,
+                              s: expiredDays > 1 ? 's' : '',
+                            })}
+                          </span>
+                        );
+                      } else if (diffDays <= 7) {
+                        return (
+                          <span className="expiring-soon-text">
+                            {i18n.t('sasettings_bank_days_remaining', {
+                              days: diffDays,
+                              s: diffDays > 1 ? 's' : '',
+                            })}
+                          </span>
+                        );
+                      } else {
+                        return (
+                          <span>
+                            {i18n.t('sasettings_bank_days_remaining', {
+                              days: diffDays,
+                              s: diffDays > 1 ? 's' : '',
+                            })}
+                          </span>
+                        );
+                      }
+                    })()
+                  : 'N/A'}
+              </td>
+            )}
+            {isSaasServer && (
+              <EditableCell
+                value={bank.settings?.SALES_REP || ''}
+                onChange={(newVal) => {
+                  if (
+                    newVal &&
+                    !newVal
+                      .toLowerCase()
+                      .match(
+                        /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|.(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/,
+                      )
+                  ) {
+                    toast.warn(i18n.t('sasettings_bank_sales_rep_must_be_email'));
+                    return;
+                  }
+                  toggleBankSetting(bank.id, {
+                    ...bank.settings,
+                    SALES_REP: newVal,
+                  });
+                }}
+              />
+            )}
+            {!isRestrictedSuperadmin && (
+              <td className={showSettings ? 'settings-column-expanded' : ''}>
+                <div
+                  className="action"
+                  onClick={() => toggleShowBankSettings(bank.id)}
+                >
+                  {i18n.t('settings_bank_settings_toggle_bank_settings')}
+                </div>
+                {showSettings && (
+                  <>
+                    {Object.keys(settingsConfig).map((k) => (
+                      <InlineSetting
+                        key={k}
+                        bank={bank}
+                        settingNameInDB={k}
+                        toggleBankSetting={toggleBankSetting}
+                      />
+                    ))}
+                    {Object.keys(autolockDelaySettings).map((k) => (
+                      <AutolockDelaySetting
+                        key={k}
+                        bank={bank}
+                        settingNameInDB={k}
+                        toggleBankSetting={toggleBankSetting}
+                      />
+                    ))}
+                  </>
+                )}
+              </td>
+            )}
+            {!isRestrictedSuperadmin && (
+              <td>
+                <div
+                  className={`action ${isRestrictedSuperadmin ? 'disabledUI' : ''}`}
+                  onClick={() => onAskDelete(bank.id)}
+                >
+                  {i18n.t('delete')}
+                </div>
+              </td>
+            )}
+          </tr>
+  );
+});
 
 const InlineSetting = (props) => {
   const { bank, settingNameInDB, toggleBankSetting } = props;
