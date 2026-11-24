@@ -55,7 +55,7 @@ const translations = {
     "Les coffres-forts archivés n'apparaissent dans aucune autre vue, ne sont plus décomptés dans vos licences consommées et ne sont plus concernés par la désactivation automatique.",
   user_archive_confirm_title: 'Archiver ce coffre-fort',
   user_archive_confirm_text:
-    "Êtes-vous sûr de vouloir archiver le coffre-fort $email ? Il ne sera plus visible dans la liste des coffres-forts (sauf via le filtre dédié) et ne comptera plus dans vos licences consommées.",
+    'Êtes-vous sûr de vouloir archiver le coffre-fort $email ? Il ne sera plus visible dans la liste des coffres-forts (sauf via le filtre dédié) et ne comptera plus dans vos licences consommées.',
   user_unarchive_confirm_title: 'Désarchiver ce coffre-fort',
   user_unarchive_confirm_text:
     'Êtes-vous sûr de vouloir désarchiver le coffre-fort $email ? Cette opération consommera une licence.',
@@ -153,10 +153,10 @@ const translations = {
   settings_openid_config_pitch_mode1: 'Enrôlement et mot de passe oublié (v7.13.0 et plus) :',
   settings_openid_config_details:
     "À partir de la version 7.13.0 de l'application, le SSO permet aux utilisateurs d'enrôler leur coffre-fort et d\'utiliser la fonction mot de passe oublié sans passer par la validation par e-mail.",
-  settings_openid_config_pitch_mode2: 'Déverrouillage sans mot de passe (v7.20.0 et plus) :',
+  settings_openid_config_pitch_mode2: 'Déverrouillage sans mot de passe (v7.21.0 et plus) :',
   settings_passwordless_section_title: 'Déverrouillage sans mot de passe',
   settings_sso_slo_message:
-    "À partir de la version 7.20.0 de l'application, le SSO permet aux utilisateurs sélectionnés de déverrouiller leur coffre-fort sans mot de passe.\n\nEn raison des contraintes imposées par le remplissage automatique sur iOS et Android, et pour le support du mode hors-ligne, le Single Log Out (SLO) n'est pas pris en charge par défaut.\n\nLes utilisateurs de Microsoft peuvent configurer un SLO en liant leur annuaire Microsoft Entra ID dans l'onglet \"Emails autorisés et SLO\".",
+    "À partir de la version 7.21.0 de l'application, le SSO permet aux utilisateurs sélectionnés de déverrouiller leur coffre-fort sans mot de passe.\n\nEn raison des contraintes imposées par le remplissage automatique sur iOS et Android, et pour le support du mode hors-ligne, le Single Log Out (SLO) n'est pas pris en charge par défaut.\n\nLes utilisateurs de Microsoft peuvent configurer un SLO en liant leur annuaire Microsoft Entra ID dans l'onglet \"Emails autorisés et SLO\".",
   settings_openid_unset: 'Désactivé',
   settings_openid_custom_config: 'Service personnalisé',
   settings_openid_custom_config_submit: 'Valider',
