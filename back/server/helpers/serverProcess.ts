@@ -2,14 +2,43 @@ import env from './env';
 import { db } from './db';
 import https from 'https';
 import fs from 'fs';
-import { logInfo } from './logger';
+import { logError, logInfo } from './logger';
 import { setupMSGraph } from './init_ms_graph';
 import { setupGlobalAgent } from './xmlHttpRequest';
 
 setupGlobalAgent();
 
+// In dev, every request relies on DEV_FALLBACK_ADMIN_EMAIL to create a session. If this admin is
+// missing in DB, no session is created and the front gets redirected to login.html, which is
+// hard to diagnose (the front only sees "Unexpected token '<'"). So we exit at startup.
+const checkDevFallbackAdmin = async (): Promise<void> => {
+  if (env.IS_PRODUCTION) return;
+  const email = env.DEV_FALLBACK_ADMIN_EMAIL;
+  if (!email) {
+    logError(
+      '================ ERROR ================\n' +
+        'DEV_FALLBACK_ADMIN_EMAIL is not set in back/.env. ',
+    );
+    process.exit(1);
+  }
+  try {
+    const res = await db.query('SELECT 1 FROM admins WHERE email=$1', [email]);
+    if (res.rows.length === 0) {
+      logError(
+        '================ ERROR ================\n' +
+          `DEV_FALLBACK_ADMIN_EMAIL (${email}) not found in the admins table. ` +
+          'Insert this admin in DB (see developerDoc.md).',
+      );
+      process.exit(1);
+    }
+  } catch (e) {
+    logError('Could not check DEV_FALLBACK_ADMIN_EMAIL in DB', e);
+  }
+};
+
 export const startServer = (app: any, then: any): void => {
   setupMSGraph();
+  checkDevFallbackAdmin();
   if (env.LOCALHOST_SSL_CERTIFICATE_KEY_PATH && env.LOCALHOST_SSL_CERTIFICATE_CRT_PATH) {
     const options = {
       key: fs.readFileSync(env.LOCALHOST_SSL_CERTIFICATE_KEY_PATH),
