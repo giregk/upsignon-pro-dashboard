@@ -242,6 +242,7 @@ export class OpenidConfiguration extends React.Component {
         {ssoEnabled && (
           <div style={{ marginTop: 40 }}>
             <h2>{i18n.t('settings_passwordless_section_title')}</h2>
+            <p>{i18n.t('settings_passwordless_section_old_version_info')}</p>
 
             <AllowedEmails
               setIsLoading={this.props.setIsLoading}

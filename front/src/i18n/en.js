@@ -154,6 +154,8 @@ const translations = {
     'From version 7.13.0 of the app, SSO allows users to enroll their vault and use the forgotten password feature without going through email validation.',
   settings_openid_config_pitch_mode2: 'Passwordless unlock (v7.21.0 and above):',
   settings_passwordless_section_title: 'Passwordless unlock',
+  settings_passwordless_section_old_version_info:
+    'If the user is still on a version of the app older than 7.21.0, this setting is simply ignored.',
   settings_sso_slo_message:
     'From version 7.21.0 of the app, SSO allows selected users to unlock their vault without a password.\n\nDue to constraints imposed by autofill on iOS and Android, and to support offline mode, Single Log Out (SLO) is not supported by default.\n\nMicrosoft users can configure SLO by linking their Microsoft Entra ID directory in the "Allowed emails and SLO" tab.',
   settings_openid_unset: 'Deactivated',
