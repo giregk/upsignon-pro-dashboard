@@ -180,9 +180,12 @@ export class OpenidConfiguration extends React.Component {
             title={i18n.t('settings_openid_disable_sso')}
             onClosed={this._closeDisableSSODialog}
           >
-            <p style={{ whiteSpace: 'pre-wrap', color: '#c0392b', fontWeight: 'bold' }}>
-              {i18n.t('settings_openid_disable_warning')}
-            </p>
+            {/* Avertissement passwordless temporairement masqué */}
+            {false && (
+              <p style={{ whiteSpace: 'pre-wrap', color: '#c0392b', fontWeight: 'bold' }}>
+                {i18n.t('settings_openid_disable_warning')}
+              </p>
+            )}
             <p style={{ whiteSpace: 'pre-wrap' }}>
               {i18n.t('settings_openid_confirm_erase_previous_config')}
             </p>
@@ -211,11 +214,16 @@ export class OpenidConfiguration extends React.Component {
             <strong>{i18n.t('settings_openid_config_pitch_mode1')}</strong>{' '}
             {i18n.t('settings_openid_config_details')}
           </p>
-          <br />
-          <p style={{ margin: 0 }}>
-            <strong>{i18n.t('settings_openid_config_pitch_mode2')}</strong>{' '}
-            {i18n.t('settings_sso_slo_message')}
-          </p>
+          {/* Explications passwordless temporairement masquées */}
+          {false && (
+            <>
+              <br />
+              <p style={{ margin: 0 }}>
+                <strong>{i18n.t('settings_openid_config_pitch_mode2')}</strong>{' '}
+                {i18n.t('settings_sso_slo_message')}
+              </p>
+            </>
+          )}
         </div>
         <div className={isRestrictedSuperadmin ? 'disabledUI' : null}>
           <NoSSOChoice
@@ -239,7 +247,8 @@ export class OpenidConfiguration extends React.Component {
             currentConfig={this.state.openidConfig}
           />
         </div>
-        {ssoEnabled && (
+        {/* Fonctionnalité passwordless temporairement masquée */}
+        {false && ssoEnabled && (
           <div style={{ marginTop: 40 }}>
             <h2>{i18n.t('settings_passwordless_section_title')}</h2>
             <p>{i18n.t('settings_passwordless_section_old_version_info')}</p>

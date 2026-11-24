@@ -313,7 +313,8 @@ export class MicrosoftEntraConfig extends React.Component {
           </div>
         )}
 
-        {ssoEnabled && (
+        {/* Fonctionnalité passwordless temporairement masquée */}
+        {false && ssoEnabled && (
           <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid grey' }}>
             <MsEntraPasswordlessCheckbox
               shamirConfigured={this.props.shamirConfigured}

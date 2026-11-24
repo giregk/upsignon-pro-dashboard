@@ -148,7 +148,7 @@ class Settings extends React.Component {
               </div>
               <AllowedEmails
                 setIsLoading={this.props.setIsLoading}
-                ssoEnabled={ssoEnabled}
+                ssoEnabled={false /* passwordless temporairement masqué */}
                 shamirConfigured={shamirConfigured}
               />
               <MicrosoftEntraConfig
