@@ -13,6 +13,10 @@ import { toast } from 'react-toastify';
 import { Search } from '../../components/Search';
 import { SearchByFields } from '../../helpers/SearchByFields';
 
+// Virtual list settings
+const ESTIMATED_ROW_HEIGHT = 41;
+const OVERSCAN_PX = 600;
+
 // Props : setIsLoading, banks, fetchBanks
 class Banks extends React.Component {
   state = {
@@ -25,6 +29,7 @@ class Banks extends React.Component {
     selectedResellerIdForNewBank: null, // Selected reseller for new bank form
     resellers: [],
     search: localStorage.getItem('search') || '',
+    range: { start: 0, end: 50 }, // virtual list: rendered rows window
   };
   newBankNameInputRef = null;
   newAdminEmailInputRef = null;
@@ -166,7 +171,102 @@ class Banks extends React.Component {
   };
   componentDidMount() {
     this.fetchResellers();
+    this.attachScrollContainer();
   }
+  componentDidUpdate() {
+    this.attachScrollContainer();
+    this.measureRows();
+    // filters/search/sort may have changed the list: make sure the window is still right
+    this.onScrollOrResize();
+  }
+  componentWillUnmount() {
+    this.detachScrollContainer();
+  }
+
+  // ---- Virtual list ----
+  rowHeights = new Map();
+  scrollContainer = null;
+  tbodyRef = null;
+  rafId = null;
+  onScrollOrResize = () => {
+    if (this.rafId) return;
+    this.rafId = requestAnimationFrame(() => {
+      this.rafId = null;
+      const range = this.computeRange();
+      if (range.start !== this.state.range.start || range.end !== this.state.range.end) {
+        this.setState({ range });
+      }
+    });
+  };
+  attachScrollContainer = () => {
+    const container = this.tbodyRef ? this.tbodyRef.closest('.page') : null;
+    if (container === this.scrollContainer) return;
+    this.detachScrollContainer();
+    this.scrollContainer = container;
+    if (container) {
+      // we handle scroll position compensation ourselves (see measureRows)
+      container.style.overflowAnchor = 'none';
+      container.addEventListener('scroll', this.onScrollOrResize, { passive: true });
+      window.addEventListener('resize', this.onScrollOrResize);
+      this.onScrollOrResize();
+    }
+  };
+  detachScrollContainer = () => {
+    if (this.scrollContainer) {
+      this.scrollContainer.style.overflowAnchor = '';
+      this.scrollContainer.removeEventListener('scroll', this.onScrollOrResize);
+      window.removeEventListener('resize', this.onScrollOrResize);
+    }
+    this.scrollContainer = null;
+    if (this.rafId) cancelAnimationFrame(this.rafId);
+    this.rafId = null;
+  };
+  getRowHeight = (id) => this.rowHeights.get(id) || ESTIMATED_ROW_HEIGHT;
+  // Compute the [start, end) range of rows to render for the current scroll position
+  computeRange = () => {
+    const banks = this.filteredBanksForRange || [];
+    const container = this.scrollContainer;
+    if (!container || !this.tbodyRef) return { start: 0, end: Math.min(banks.length, 50) };
+    const containerRect = container.getBoundingClientRect();
+    const tbodyTop = this.tbodyRef.getBoundingClientRect().top;
+    const viewTop = containerRect.top - tbodyTop - OVERSCAN_PX;
+    const viewBottom = containerRect.bottom - tbodyTop + OVERSCAN_PX;
+    let y = 0;
+    let start = 0;
+    while (start < banks.length && y + this.getRowHeight(banks[start].id) < viewTop) {
+      y += this.getRowHeight(banks[start].id);
+      start++;
+    }
+    let end = start;
+    while (end < banks.length && y < viewBottom) {
+      y += this.getRowHeight(banks[end].id);
+      end++;
+    }
+    return { start, end };
+  };
+  measureRows = () => {
+    if (!this.tbodyRef) return;
+    const container = this.scrollContainer;
+    const containerTop = container ? container.getBoundingClientRect().top : 0;
+    let changed = false;
+    let scrollDelta = 0;
+    this.tbodyRef.querySelectorAll('tr[data-bank-id]').forEach((tr) => {
+      const id = tr.getAttribute('data-bank-id');
+      const h = tr.offsetHeight;
+      const previous = this.rowHeights.get(id);
+      if (h && Math.abs((previous || 0) - h) > 1) {
+        this.rowHeights.set(id, h);
+        changed = true;
+        // A row located above the viewport changed height: the content below it moved.
+        // Compensate manually so that the visible content stays still.
+        if (tr.getBoundingClientRect().bottom <= containerTop) {
+          scrollDelta += h - (previous || ESTIMATED_ROW_HEIGHT);
+        }
+      }
+    });
+    if (container && scrollDelta) container.scrollTop += scrollDelta;
+    if (changed) this.onScrollOrResize();
+  };
   askDeleteBank = (id) => {
     this.setState({ bankToDeleteId: id });
   };
@@ -316,6 +416,21 @@ class Banks extends React.Component {
     }
 
     const filteredBanks = this.getFilteredBanks();
+    this.filteredBanksForRange = filteredBanks;
+    const rangeStart = Math.min(this.state.range.start, filteredBanks.length);
+    const rangeEnd = Math.min(Math.max(this.state.range.end, rangeStart), filteredBanks.length);
+    let topSpacerHeight = 0;
+    for (let i = 0; i < rangeStart; i++) topSpacerHeight += this.getRowHeight(filteredBanks[i].id);
+    let bottomSpacerHeight = 0;
+    for (let i = rangeEnd; i < filteredBanks.length; i++)
+      bottomSpacerHeight += this.getRowHeight(filteredBanks[i].id);
+    const visibleBanks = filteredBanks.slice(rangeStart, rangeEnd);
+    const spacerRow = (key, height) =>
+      height > 0 ? (
+        <tr key={key} className="detailContainer" style={{ height }} aria-hidden="true">
+          <td colSpan={99} style={{ padding: 0, border: 'none', height }} />
+        </tr>
+      ) : null;
     return (
       <div>
         <h2>{i18n.t('sasettings_banks')}</h2>
@@ -488,8 +603,9 @@ class Banks extends React.Component {
                 {!isRestrictedSuperadmin && <th>{i18n.t('actions')}</th>}
               </tr>
             </thead>
-            <tbody>
-              {filteredBanks.map((bank) => (
+            <tbody ref={(r) => (this.tbodyRef = r)}>
+              {spacerRow('top-spacer', topSpacerHeight)}
+              {visibleBanks.map((bank) => (
                 <BankRow
                   key={bank.id}
                   bank={bank}
@@ -502,6 +618,7 @@ class Banks extends React.Component {
                   onAskDelete={this.askDeleteBank}
                 />
               ))}
+              {spacerRow('bottom-spacer', bottomSpacerHeight)}
               <tr className="total-row">
                 <td>{i18n.t('total')}</td>
                 <td></td>
@@ -537,7 +654,7 @@ const BankRow = React.memo(function BankRow(props) {
     onAskDelete,
   } = props;
   return (
-          <tr key={bank.id}>
+          <tr key={bank.id} data-bank-id={bank.id}>
             <td>
               <span
                 className="action"
