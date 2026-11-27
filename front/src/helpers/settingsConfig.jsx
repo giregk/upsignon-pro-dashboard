@@ -55,6 +55,12 @@ export const settingsConfig = {
     userTitle: 'user_allow_android',
     reverseMeaningForUser: false,
   },
+  ALLOWED_WEB: {
+    banksTitle: 'sasettings_allow_web',
+    recommendedValue: true,
+    userTitle: 'user_allow_web',
+    reverseMeaningForUser: false,
+  },
   REQUIRE_ADMIN_CHECK_FOR_SECOND_DEVICE: {
     banksTitle: 'sasettings_require_admin_check_for_second_device',
     recommendedValue: false,

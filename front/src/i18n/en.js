@@ -386,6 +386,8 @@ const translations = {
   user_allow_android: 'Android',
   user_allow_macos: 'macOS',
   user_allow_linux: 'Linux',
+  sasettings_allow_web: 'By default, allow the web app',
+  user_allow_web: 'Web app',
   sasettings_require_admin_check_for_second_device:
     'Require a manual administrator validation to add more than one device',
   sasettings_prevent_update_popup: 'Prevent the display of the update popup in the app.',
